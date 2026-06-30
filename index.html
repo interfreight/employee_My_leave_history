@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>My Leave History</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Segoe UI',sans-serif;
+}
+
+body{
+background:#f4f7fb;
+display:flex;
+min-height:100vh;
+}
+
+.sidebar{
+width:260px;
+background:#003366;
+color:white;
+padding:25px;
+}
+
+.logo{
+text-align:center;
+margin-bottom:30px;
+}
+
+.logo img{
+width:120px;
+}
+
+.logo h2{
+margin-top:10px;
+font-size:22px;
+}
+
+.menu a{
+display:block;
+padding:14px;
+margin-bottom:10px;
+border-radius:10px;
+text-decoration:none;
+color:white;
+font-weight:500;
+}
+
+.menu a.active{
+background:#F4C542;
+color:#003366;
+font-weight:bold;
+}
+
+.main{
+flex:1;
+padding:30px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:30px;
+}
+
+.header h1{
+font-size:40px;
+color:#003366;
+}
+
+.logout-btn{
+background:#dc3545;
+color:white;
+border:none;
+padding:12px 18px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:18px;
+box-shadow:0 5px 18px rgba(0,0,0,.08);
+margin-bottom:25px;
+}
+
+.search-box{
+display:flex;
+gap:15px;
+margin-bottom:20px;
+}
+
+.search-box input{
+
+flex:1;
+padding:12px;
+border:1px solid #ccc;
+border-radius:10px;
+font-size:15px;
+
+}
+
+.search-box select{
+
+padding:12px;
+border:1px solid #ccc;
+border-radius:10px;
+font-size:15px;
+
+}
+
+.leave-card{
+
+border:1px solid #e6e6e6;
+border-radius:15px;
+padding:18px;
+margin-bottom:15px;
+
+}
+
+.leave-card h3{
+
+color:#003366;
+margin-bottom:10px;
+
+}
+
+.leave-card p{
+
+margin:5px 0;
+
+}
+
+.status{
+
+padding:6px 12px;
+border-radius:20px;
+font-size:13px;
+font-weight:bold;
+display:inline-block;
+
+}
+
+.pending{
+
+background:#fff3cd;
+color:#856404;
+
+}
+
+.approved{
+
+background:#d4edda;
+color:#155724;
+
+}
+
+.rejected{
+
+background:#f8d7da;
+color:#721c24;
+
+}
+
+.back-btn{
+
+display:inline-block;
+margin-bottom:20px;
+background:#003366;
+color:white;
+padding:10px 18px;
+border-radius:10px;
+text-decoration:none;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="sidebar">
+
+<div class="logo">
+
+<img src="3. INTERFREIGHT COMPANY LOGO.png">
+
+<h2>INTERFREIGHT</h2>
+
+</div>
+
+<div class="menu">
+
+<a href="employee-portal.html">
+Dashboard
+</a>
+
+<a href="#" class="active">
+Leave History
+</a>
+
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="header">
+
+<h1>My Leave History</h1>
+
+<button class="logout-btn" onclick="logout()">
+Logout
+</button>
+
+</div>
+
+<a href="employee-portal.html" class="back-btn">
+← Back to Dashboard
+</a>
+
+<div class="card">
+
+<div class="search-box">
+
+<input
+type="text"
+id="searchInput"
+placeholder="Search leave type..."
+onkeyup="loadLeaveHistory()">
+
+<select
+id="statusFilter"
+onchange="loadLeaveHistory()">
+
+<option value="">
+All Status
+</option>
+
+<option value="Pending">
+Pending
+</option>
+
+<option value="Approved">
+Approved
+</option>
+
+<option value="Rejected">
+Rejected
+</option>
+
+</select>
+
+</div>
+
+<div id="leaveHistory">
+
+Loading...
+
+</div>
+
+</div>
+<script>
+
+const db = window.supabase.createClient(
+"https://tuihpvykuqbqnfyfepql.supabase.co",
+"YOUR_SUPABASE_ANON_KEY"
+);
+
+const currentUser =
+JSON.parse(localStorage.getItem("currentUser"));
+
+if(!currentUser){
+
+window.location.href =
+"https://interfreight.github.io/login/";
+
+}
+
+function logout(){
+
+localStorage.removeItem("currentUser");
+
+window.location.href =
+"https://interfreight.github.io/login/";
+
+}
+
+async function loadLeaveHistory(){
+
+const keyword =
+document.getElementById("searchInput").value.toLowerCase();
+
+const status =
+document.getElementById("statusFilter").value;
+
+const container =
+document.getElementById("leaveHistory");
+
+let query =
+db
+.from("employee_leaves")
+.select("*")
+.eq("user_id", currentUser.id)
+.order("created_at",{ascending:false});
+
+if(status !== ""){
+
+query = query.eq("status",status);
+
+}
+
+const { data,error } = await query;
+
+if(error){
+
+container.innerHTML = error.message;
+
+return;
+
+}
+
+if(!data || data.length===0){
+
+container.innerHTML =
+"<p>No leave requests found.</p>";
+
+return;
+
+}
+
+container.innerHTML="";
+
+data.forEach(leave=>{
+
+if(
+keyword !== "" &&
+!leave.leave_type.toLowerCase().includes(keyword)
+){
+
+return;
+
+}
+
+let cls="pending";
+
+if(leave.status==="Approved") cls="approved";
+
+if(leave.status==="Rejected") cls="rejected";
+
+container.innerHTML += `
+
+<div class="leave-card">
+
+<h3>${leave.leave_type}</h3>
+
+<p><b>Date:</b> ${leave.date_from} to ${leave.date_to}</p>
+
+<p><b>Total Days:</b> ${leave.total_days}</p>
+
+<p><b>Reason:</b> ${leave.reason}</p>
+
+<p>
+
+<b>Status:</b>
+
+<span class="status ${cls}">
+
+${leave.status}
+
+</span>
+
+</p>
+
+</div>
+
+`;
+
+});
+
+}
+
+loadLeaveHistory();
+
+</script>
+
+</body>
+
+</html>
